@@ -73,12 +73,8 @@ void loop() {
         );
         client.publish(mPubAddr.c_str(), getPubString(getHumidity(), getTemperature(), getConductivity(), getPH(), getNitrogen(), getPhosphorus(), getPotassium()).c_str());
       }
-    }
-
-    
+    }    
   } 
-  
-  
 }
 
 float getHumidity() {
@@ -166,11 +162,28 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.print("] ");
 
-  // Print the received message as a string to the serial monitor
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);      
-  }    
-  Serial.println();    
+  if (payload[0] == '{') {  
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+    if (error) {
+      Serial.print("Failed to parse JSON: ");
+      Serial.println(error.c_str());
+    } else {
+      if (doc.containsKey("status")) {
+        int numStatus = doc["status"];
+        if (numStatus == 1) {
+          Serial.println("Status request");
+          client.publish(mPubAddr.c_str(), getPubString(getHumidity(), getTemperature(), getConductivity(), getPH(), getNitrogen(), getPhosphorus(), getPotassium()).c_str());          
+        }
+      }      
+    }
+  } else {
+    // Print the received message as a string to the serial monitor
+    for (int i = 0; i < length; i++) {
+      Serial.print((char)payload[i]);      
+    }    
+    Serial.println();    
+  }  
 }
 
 void reconnect() {
